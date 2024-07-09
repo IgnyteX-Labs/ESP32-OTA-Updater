@@ -1,0 +1,17 @@
+name: Determine Version and Release
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  determine_version_and_release:
+    uses: IgnyteX-Labs/.github/.github/workflows/platformiolibrary_version_and_release.yml@main
+    secrets: inherit
+    permissions: write-all
