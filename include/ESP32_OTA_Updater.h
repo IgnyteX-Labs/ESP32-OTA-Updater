@@ -18,29 +18,25 @@
 class ESP32_OTA_Updater
 {
 private:
-    const char *github_url; /**< The URL of the main Github Repository. */
+    const char *repositry_owner; /**< The owner of the repository where the firmware is build an released. */
+    const char *repositry_name; /**< The name of the repository where the firmware is build an released. */
+    const char *firmware_asset_path; /**< The path to the firmware binary file on the Github Release -> the asset name. */
     const char *current_version; /**< The current semantic version of the firmware. */
     ESP32_OTA_Updater_Error error; /**< The error status of the OTA updater. */
+    WiFiClientSecure *wifi_client_secure; /**< The WifiClientSecure object for HTTPS communication. */
+    HTTPClient http_client; /**< The HTTPClient object for making HTTP requests. */
 
 public:
     
     /**
      * @brief Constructs an instance of the ESP32_OTA_Updater class.
+     *
+     * @param owner The owner of the repository where the firmware is build an released.
+     * @param repo The name of the repository where the firmware is build an released.
+     * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
+     * @param current_version The current version of the firmware.
      */
-    ESP32_OTA_Updater();
-
-    /**
-     * @brief Initializes the OTA updater.
-     * 
-     * This function should be called once at the beginning of the program to initialize the OTA updater.
-     * 
-     * @param url The URL of the main Github Repository.
-     * @param currentVersion The current semantic version of the firmware. (e.g. "1.0.0")
-     * @return True if the initialization is successful, false otherwise.
-     * 
-     * @note This functions requires the ESP32 Wifi class to be initialized and connected before calling.
-     */
-    bool begin(const char url[], const char currentVersion[]);
+    ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]);
 
     /**
      * @brief Checks if a firmware update is available.
