@@ -1,6 +1,4 @@
 #include "ESP32_OTA_Updater.h"
-#include <Wifi.h>
-#include <HTTPClient.h>
 #include <ArduinoJson.h>
 
 ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[])
@@ -70,6 +68,8 @@ bool ESP32_OTA_Updater::downloadAndInstall()
     }
 
     // Download and install the firmware update
+
+    return true;
 }
 
 ESP32_OTA_Updater_Error ESP32_OTA_Updater::getErrorCode()

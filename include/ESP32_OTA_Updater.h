@@ -6,6 +6,8 @@
  */
 
 #include <WString.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include "Errors.h"
 
 /**
