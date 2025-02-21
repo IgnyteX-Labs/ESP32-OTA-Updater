@@ -1,6 +1,5 @@
 #include "ESP32_OTA_Updater.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
 #include <Update.h>
 
 ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]): current_version(Version(current_version))
@@ -24,19 +23,6 @@ ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], cons
     api_key_defined = true;    
 
     error = ESP32_OTA_Updater_Error::NO_ERROR;
-}
-
-bool ESP32_OTA_Updater::begin() {
-    if(!LittleFS.begin(ESP32_OTA_UPDATER_FORMAT_LITTLEFS_IF_FAILED))
-    {
-        error = ESP32_OTA_Updater_Error::FS_FAILED;
-        return false;
-    }
-}
-
-bool ESP32_OTA_Updater::begin(fs::FS *customFS) {
-    filesystem = customFS;
-    return true;
 }
 
 bool ESP32_OTA_Updater::available()
@@ -135,18 +121,6 @@ bool ESP32_OTA_Updater::downloadAndInstall()
         return false;
     }
 
-    // Download the firmware update
-    
-    // Open the file to write the firmware to
-    char firmware_path[strlen(firmware_asset_path)+19+1];
-    sprintf(firmware_path, "/esp32_ota_updater_%s", firmware_asset_path);
-    fs::File file = filesystem->open(firmware_path, "w");
-    if(!file)
-    {
-        error = ESP32_OTA_Updater_Error::FS_FAILED;
-        return false;
-    }
-
     // Download the firmware from the URL
     if(!http_client.begin(*wifi_client_secure, binary_download_url))
     {
@@ -176,13 +150,40 @@ bool ESP32_OTA_Updater::downloadAndInstall()
         return false;
     }
     // Directly write the download stream to the file stream...
-    http_client.writeToStream(&file);
+    int update_size = http_client.getSize();
 
-    file.close();
-    
-    // Install the firmware...
+    if (!Update.begin(update_size)) {
+        error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
+        http_client.end();
+        return false;
+    }
+
+    if (Update.writeStream(http_client.getStream()) != update_size) {
+        error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
+        Update.end();
+        http_client.end();
+        return false;
+    }
+
+    if (!Update.end(true)) {
+        error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
+        http_client.end();
+        return false;
+    }
+
+    if (!Update.isFinished()) {
+        error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
+        http_client.end();
+        return false;
+    }
+
+    http_client.end();
 
     return true;
+}
+
+void ESP32_OTA_Updater::reboot() {
+    ESP.restart();
 }
 
 ESP32_OTA_Updater_Error ESP32_OTA_Updater::getErrorCode()
@@ -210,8 +211,6 @@ String ESP32_OTA_Updater::getErrorDescription()
             return "OTA failed to deserialize";
         case ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID:
             return "OTA response invalid";
-        case ESP32_OTA_Updater_Error::FS_FAILED:
-            return "A Problem with the filesystem occurred";
         default:
             return "Unknown error";
     }
