@@ -1,12 +1,11 @@
 #include "ESP32_OTA_Updater.h"
 #include <ArduinoJson.h>
 
-ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[])
+ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]): current_version(Version(current_version))
 {
     repositry_owner = owner;
     repositry_name = repo;
     firmware_asset_path = firmware_path;
-    current_version = current_version;
     error = ESP32_OTA_Updater_Error::NO_ERROR;
 }
 
@@ -31,10 +30,10 @@ bool ESP32_OTA_Updater::available()
     http_client.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     
     int http_code = http_client.GET();
-    
+
     if(http_code != HTTP_CODE_OK)
     {
-        if(http_code <0 )
+        if(http_code < 0)
         {
             error = ESP32_OTA_Updater_Error::WIFI_NOT_CONNECTED;
         }
@@ -48,16 +47,28 @@ bool ESP32_OTA_Updater::available()
     JsonDocument doc;
 
     DeserializationError json_error = deserializeJson(doc, http_client.getStream());
+    http_client.end();
     if(json_error)
     {
         error = ESP32_OTA_Updater_Error::OTA_FAILED_TO_DESERIALIZE;
-        http_client.end();
         return false;
     }
 
+    // Check version from the JSON response
+    if(!doc.containsKey("tag_name")) {
+        error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
+        return false;
+    }
+    
+    Version latest_version(Version(doc["tag_name"].as<const char*>()));
 
-
-    return true;
+    // Store the asset 
+    /*
+        Please NOTE: For now the available function only checks availability and does not store or cache any asset path etc.
+        This is very inefficient but should not be a problem as the available function should only be called once in a while. 
+        Additionally this makes the download and install function more reliable to always use the newes version...available
+    */
+   return latest_version > current_version;
 }
 
 bool ESP32_OTA_Updater::downloadAndInstall()
@@ -68,6 +79,9 @@ bool ESP32_OTA_Updater::downloadAndInstall()
     }
 
     // Download and install the firmware update
+    
+
+    // Update the firmware
 
     return true;
 }
@@ -93,6 +107,10 @@ String ESP32_OTA_Updater::getErrorDescription()
             return "OTA download failed";
         case ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED:
             return "OTA install failed";
+        case ESP32_OTA_Updater_Error::OTA_FAILED_TO_DESERIALIZE:
+            return "OTA failed to deserialize";
+        case ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID:
+            return "OTA response invalid";
         default:
             return "Unknown error";
     }

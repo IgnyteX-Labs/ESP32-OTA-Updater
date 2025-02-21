@@ -8,7 +8,9 @@
 #include <WString.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+
 #include "Errors.h"
+#include "SemanticVersion.h"
 
 /**
  * @class ESP32_OTA_Updater
@@ -23,7 +25,7 @@ private:
     const char *repositry_owner; /**< The owner of the repository where the firmware is build an released. */
     const char *repositry_name; /**< The name of the repository where the firmware is build an released. */
     const char *firmware_asset_path; /**< The path to the firmware binary file on the Github Release -> the asset name. */
-    const char *current_version; /**< The current semantic version of the firmware. */
+    Version current_version; /**< The current semantic version of the firmware. */
     ESP32_OTA_Updater_Error error; /**< The error status of the OTA updater. */
     WiFiClientSecure *wifi_client_secure; /**< The WifiClientSecure object for HTTPS communication. */
     HTTPClient http_client; /**< The HTTPClient object for making HTTP requests. */
