@@ -8,6 +8,7 @@
 #include <WString.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <FS.h>
 
 #include "Errors.h"
 #include "SemanticVersion.h"
@@ -15,11 +16,15 @@
 #define ESP32_OTA_UPDATER_SHORTSTRING_LENGTH 25
 #define ESP32_OTA_UPDATER_LONGSTRING_LENGTH 50
 
+#ifndef ESP32_OTA_UPDATER_FORMAT_LITTLEFS_IF_FAILED
+#define ESP32_OTA_UPDATER_FORMAT_LITTLEFS_IF_FAILED true
+#endif
+
 /**
  * @class ESP32_OTA_Updater
  * @brief Class for performing Over-The-Air (OTA) updates on ESP32 devices, with Github Actions and Releases.
  * 
- * This class checks for new Github Releases compares the semantic version and downloads/installs the firmware update.
+ * This class checks for new Github Releases compares the semantic version and downloads/installs the firmware update. For now the System automatically uses the LittleFS file system, but a custom fs:FS can be specified on begin().
  * 
  */
 class ESP32_OTA_Updater
@@ -36,11 +41,11 @@ private:
     char binary_download_url[ESP32_OTA_UPDATER_SHORTSTRING_LENGTH]; /**< The URL to download the firmware binary file. */
     int binary_size = 0; /**< The size of the firmware binary file. */
 
-
     Version current_version; /**< The current semantic version of the firmware. */
     ESP32_OTA_Updater_Error error; /**< The error status of the OTA updater. */
     WiFiClientSecure *wifi_client_secure; /**< The WifiClientSecure object for HTTPS communication. */
     HTTPClient http_client; /**< The HTTPClient object for making HTTP requests. */
+    fs::FS *filesystem; /**< The file system object for reading and writing files. */
 
 public:
     
@@ -65,6 +70,20 @@ public:
      * @param gh_api_key The (Fine Grained) Github Personal Access Token.
      */
     ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char gh_api_key[]);
+
+    /**
+     * @brief Initializes the ESP32 OTA Updater.
+     * 
+     * @note This tries to mount the LittleFS file system. If it fails, it will format the LittleFS file system, this can be turned off by overwriting the ESP32_OTA_UPDATER_FORMAT_LITTLEFS_IF_FAILED macro. 
+     */
+    bool begin();
+
+    /**
+     * @brief Initializes the ESP32 OTA Updater with a custom file system.
+     * 
+     * @note The filesystem passed must be initialized and mounted. 
+     */    
+    bool begin(fs::FS *customFS);
 
     /**
      * @brief Checks if a firmware update is available.
