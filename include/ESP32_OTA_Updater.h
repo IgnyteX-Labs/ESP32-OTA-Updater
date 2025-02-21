@@ -12,6 +12,9 @@
 #include "Errors.h"
 #include "SemanticVersion.h"
 
+#define ESP32_OTA_UPDATER_SHORTSTRING_LENGTH 25
+#define ESP32_OTA_UPDATER_LONGSTRING_LENGTH 50
+
 /**
  * @class ESP32_OTA_Updater
  * @brief Class for performing Over-The-Air (OTA) updates on ESP32 devices, with Github Actions and Releases.
@@ -22,9 +25,18 @@
 class ESP32_OTA_Updater
 {
 private:
-    const char *repositry_owner; /**< The owner of the repository where the firmware is build an released. */
-    const char *repositry_name; /**< The name of the repository where the firmware is build an released. */
-    const char *firmware_asset_path; /**< The path to the firmware binary file on the Github Release -> the asset name. */
+    char repositry_owner[ESP32_OTA_UPDATER_SHORTSTRING_LENGTH]; /**< The owner of the repository where the firmware is build an released. */
+    char repositry_name[ESP32_OTA_UPDATER_SHORTSTRING_LENGTH]; /**< The name of the repository where the firmware is build an released. */
+    char gh_api_key[ESP32_OTA_UPDATER_LONGSTRING_LENGTH]; /**< (Fine Grained) Github Personal Access Token. Required for private repositries! */
+    bool api_key_defined; /**< True if the Github API key is defined, false otherwise. */
+    char firmware_asset_path[ESP32_OTA_UPDATER_SHORTSTRING_LENGTH]; /**< The path to the firmware binary file on the Github Release -> the asset name. */
+    
+    bool new_version_available = false; /**< True if a new firmware version is available, false otherwise. */
+    Version new_version = NULL; /**< The new semantic version of the firmware. */
+    char binary_download_url[ESP32_OTA_UPDATER_SHORTSTRING_LENGTH]; /**< The URL to download the firmware binary file. */
+    int binary_size = 0; /**< The size of the firmware binary file. */
+
+
     Version current_version; /**< The current semantic version of the firmware. */
     ESP32_OTA_Updater_Error error; /**< The error status of the OTA updater. */
     WiFiClientSecure *wifi_client_secure; /**< The WifiClientSecure object for HTTPS communication. */
@@ -39,8 +51,20 @@ public:
      * @param repo The name of the repository where the firmware is build an released.
      * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
      * @param current_version The current version of the firmware.
+     * @note Only public repositries are supported without the `gh_api
      */
     ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]);
+
+    /**
+     * @brief Constructs an instance of the ESP32_OTA_Updater class.
+     *
+     * @param owner The owner of the repository where the firmware is build an released.
+     * @param repo The name of the repository where the firmware is build an released.
+     * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
+     * @param current_version The current version of the firmware.
+     * @param gh_api_key The (Fine Grained) Github Personal Access Token.
+     */
+    ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char gh_api_key[]);
 
     /**
      * @brief Checks if a firmware update is available.

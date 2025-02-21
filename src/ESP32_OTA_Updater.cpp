@@ -3,9 +3,22 @@
 
 ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]): current_version(Version(current_version))
 {
-    repositry_owner = owner;
-    repositry_name = repo;
-    firmware_asset_path = firmware_path;
+    strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(repositry_name, repo, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(firmware_asset_path, firmware_path, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    api_key_defined = false;
+    
+    error = ESP32_OTA_Updater_Error::NO_ERROR;
+}
+
+ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char api_key[]): current_version(Version(current_version))
+{
+    strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(repositry_name, repo, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(firmware_asset_path, firmware_path, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(gh_api_key, api_key, ESP32_OTA_UPDATER_LONGSTRING_LENGTH);
+    api_key_defined = true;    
+
     error = ESP32_OTA_Updater_Error::NO_ERROR;
 }
 
@@ -26,6 +39,10 @@ bool ESP32_OTA_Updater::available()
         return false;
     }
     http_client.addHeader("Accept", "application/vnd.github+json");
+    if(api_key_defined)
+    {
+        http_client.addHeader("Authorization: Bearer %s", gh_api_key);
+    }
     http_client.addHeader("X-GitHub-Api-Version", "2022-11-28");
     http_client.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     
@@ -59,16 +76,39 @@ bool ESP32_OTA_Updater::available()
         error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
         return false;
     }
-    
     Version latest_version(Version(doc["tag_name"].as<const char*>()));
-
-    // Store the asset 
-    /*
-        Please NOTE: For now the available function only checks availability and does not store or cache any asset path etc.
-        This is very inefficient but should not be a problem as the available function should only be called once in a while. 
-        Additionally this makes the download and install function more reliable to always use the newes version...available
-    */
-   return latest_version > current_version;
+    
+    if(latest_version <= current_version) {
+        return false;
+    }
+    // Find the asset with the binary:
+    if(!doc.containsKey("assets"))
+    {
+        error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
+        return false;
+    }
+    JsonArray assets = doc["assets"].as<JsonArray>();
+    bool assetFound = false;
+    for(JsonObject jsonAsset: assets) {
+        if(jsonAsset.containsKey("name") && strcmp(jsonAsset["name"].as<const char*>(), firmware_asset_path) == 0)
+        {
+            // Found the download URL
+            strncpy(binary_download_url, jsonAsset["browser_download_url"].as<const char*>(), ESP32_OTA_UPDATER_LONGSTRING_LENGTH);
+            binary_size = jsonAsset["size"].as<int>();
+            
+            new_version_available = true;
+            new_version = latest_version;
+            assetFound = true;
+            break;
+        }
+    }
+    if(!assetFound)
+    {
+        error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
+        return false;
+    }
+    
+   return true;
 }
 
 bool ESP32_OTA_Updater::downloadAndInstall()
