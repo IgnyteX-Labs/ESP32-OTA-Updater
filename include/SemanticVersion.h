@@ -36,7 +36,7 @@ public:
      */
     Version(const char *version) : major(0), minor(0), patch(0)
     {
-        if (version != nullptr && strlen(version) > 0)
+        if (version != NULL && strlen(version) > 0)
         {
             if (version[0] == 'v')
             {
