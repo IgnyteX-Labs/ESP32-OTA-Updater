@@ -10,9 +10,22 @@
 #define GITHUB_ACCESS_TOKEN "finegrained_gh_token" 
 
 // Initialize the OTA Updater (Note that the GIT_TAG property has to be set in the pio build flags in platformio.ini (look at the README example for how to do that)) 
-ESP32_OTA_Updater ota(OWNER, REPO, FIRMWARE, GIT_TAG, GITHUB_ACCESS_TOKEN);
+ESP32_OTA_Updater ota;
 void setup() {
-    // Setup your code
+   // Setup WiFi Connection
+    WiFi.begin("SSID", "PASSWORD");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.println("Connecting to WiFi..");
+    }
+    Serial.println("Connected to the WiFi network");
+
+    // Initialize the OTA Updater
+    if(!ota.begin(OWNER, REPO, FIRMWARE, GIT_TAG, GITHUB_ACCESS_TOKEN)) {
+        Serial.printf("An error occurred when trying to initialize the OTA Updater, Error Code: %d, Description: %s\n", ota.getErrorCode(), ota.getErrorDescription());
+    }else {
+        Serial.println("OTA Updater initialized successfully"); 
+    }
 }
 
 void loop() {

@@ -22,6 +22,11 @@ private:
 
 public:
     /**
+     * @brief Constructs a Version object with all version numbers set to 0.
+     */
+    Version() : major(0), minor(0), patch(0) {}
+
+    /**
      * @brief Constructs a Version object with the specified major, minor, and patch version numbers.
      * @param major The major version number.
      * @param minor The minor version number.

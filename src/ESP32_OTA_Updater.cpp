@@ -2,26 +2,28 @@
 #include <ArduinoJson.h>
 #include <Update.h>
 
-ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]): current_version(Version(current_version))
-{
-    strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
-    strncpy(repositry_name, repo, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
-    strncpy(firmware_asset_path, firmware_path, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
-    wifi_client_secure = new WiFiClientSecure();
-    api_key_defined = false;
-    
-    error = ESP32_OTA_Updater_Error::NO_ERROR;
+ESP32_OTA_Updater::ESP32_OTA_Updater() {
+    error = ESP32_OTA_Updater_Error::NOT_INITIALIZED;
 }
 
-ESP32_OTA_Updater::ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char api_key[]): current_version(Version(current_version))
-{
-    strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+bool ESP32_OTA_Updater::begin(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char api_key[]) {
+   strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
     strncpy(repositry_name, repo, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
     strncpy(firmware_asset_path, firmware_path, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
     wifi_client_secure = new WiFiClientSecure();
     strncpy(gh_api_key, api_key, ESP32_OTA_UPDATER_LONGSTRING_LENGTH);
     api_key_defined = true;    
 
+    error = ESP32_OTA_Updater_Error::NO_ERROR;
+}
+
+bool ESP32_OTA_Updater::begin(const char owner[], const char repo[], const char firmware_path[], const char current_version[]) {
+    strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(repositry_name, repo, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    strncpy(firmware_asset_path, firmware_path, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
+    wifi_client_secure = new WiFiClientSecure();
+    api_key_defined = false;
+    
     error = ESP32_OTA_Updater_Error::NO_ERROR;
 }
 

@@ -46,28 +46,35 @@ private:
     HTTPClient http_client; /**< The HTTPClient object for making HTTP requests. */
 
 public:
+    /**
+     * @brief Constructs an instance of the ESP32_OTA_Updater class.
+     */
+    ESP32_OTA_Updater();
     
     /**
-     * @brief Constructs an instance of the ESP32_OTA_Updater class.
-     *
-     * @param owner The owner of the repository where the firmware is build an released.
-     * @param repo The name of the repository where the firmware is build an released.
-     * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
-     * @param current_version The current version of the firmware.
-     * @note Only public repositries are supported without the `gh_api
-     */
-    ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[]);
-
-    /**
-     * @brief Constructs an instance of the ESP32_OTA_Updater class.
-     *
+     * @brief Initializes the ESP32 OTA Updater. 
+     * 
      * @param owner The owner of the repository where the firmware is build an released.
      * @param repo The name of the repository where the firmware is build an released.
      * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
      * @param current_version The current version of the firmware.
      * @param gh_api_key The (Fine Grained) Github Personal Access Token.
+     * 
+     * @return true if the initialization was successful, false otherwise.
      */
-    ESP32_OTA_Updater(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char gh_api_key[]);
+    bool begin(const char owner[], const char repo[], const char firmware_path[], const char current_version[], const char gh_api_key[]);
+
+    /**
+     * @brief Initializes the ESP32 OTA Updater. 
+     * 
+     * @param owner The owner of the repository where the firmware is build an released.
+     * @param repo The name of the repository where the firmware is build an released.
+     * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
+     * @param current_version The current version of the firmware.
+     * 
+     * @return true if the initialization was successful, false otherwise.
+     */
+    bool begin(const char owner[], const char repo[], const char firmware_path[], const char current_version[]);
 
     /**
      * @brief Checks if a firmware update is available.
