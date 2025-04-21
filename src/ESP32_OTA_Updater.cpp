@@ -214,7 +214,6 @@ bool ESP32_OTA_Updater::downloadAndInstall()
     debugf("Found an update firmware of size: %d bytes.\n", update_size);
 
     // Directly write the download stream to the file stream...
-    NetworkClient *client = http_client.getStreamPtr();
 
     if (!Update.begin(update_size, U_FLASH))
     {
@@ -228,7 +227,7 @@ bool ESP32_OTA_Updater::downloadAndInstall()
      * TODO: Implemente Crypto at this point, to allow for encrypted firmware binaries.
      */
 
-    if (Update.writeStream(*client) != update_size)
+    if (Update.writeStream(http_client.getStream()) != update_size)
     {
         debugf("Failed to write update stream to flash.\n");
         error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
