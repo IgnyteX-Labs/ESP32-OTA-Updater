@@ -2,15 +2,15 @@
 #include <ArduinoJson.h>
 #include <Update.h>
 
-ESP32_OTA_Updater::ESP32_OTA_Updater(const char *rootCertificate)
+ESP32_OTA_Updater::ESP32_OTA_Updater(const char *rootCertificate, const char *current_version) : current_version(current_version)
 {
     error = ESP32_OTA_Updater_Error::NOT_INITIALIZED;
     rootCert = rootCertificate;
 }
 
-bool ESP32_OTA_Updater::begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version, const char *api_key)
+bool ESP32_OTA_Updater::begin(const char *owner, const char *repo, const char *firmware_path, const char *api_key)
 {
-    _begin(owner, repo, firmware_path, current_version);
+    _begin(owner, repo, firmware_path);
 
     strncpy(gh_api_key, api_key, ESP32_OTA_UPDATER_LONGSTRING_LENGTH);
     api_key_defined = true;
@@ -19,9 +19,9 @@ bool ESP32_OTA_Updater::begin(const char *owner, const char *repo, const char *f
     return true;
 }
 
-bool ESP32_OTA_Updater::begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version)
+bool ESP32_OTA_Updater::begin(const char *owner, const char *repo, const char *firmware_path)
 {
-    _begin(owner, repo, firmware_path, current_version);
+    _begin(owner, repo, firmware_path);
 
     api_key_defined = false;
 
@@ -29,12 +29,11 @@ bool ESP32_OTA_Updater::begin(const char *owner, const char *repo, const char *f
     return true;
 }
 
-inline void ESP32_OTA_Updater::_begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version)
+inline void ESP32_OTA_Updater::_begin(const char *owner, const char *repo, const char *firmware_path)
 {
     strncpy(repositry_owner, owner, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
     strncpy(repositry_name, repo, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
     strncpy(firmware_asset_path, firmware_path, ESP32_OTA_UPDATER_SHORTSTRING_LENGTH);
-    this->current_version = Version(current_version);
 
     wifi_client_secure.setCACert(rootCert);
 
@@ -144,7 +143,9 @@ bool ESP32_OTA_Updater::available()
         error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
         return false;
     }
-    Version latest_version(Version(doc["tag_name"].as<const char *>()));
+    const char *latest_version_c_str = doc["tag_name"].as<const char *>();
+    const Version latest_version(latest_version_c_str);
+    debugf("Latest version is: %s\n", latest_version_c_str);
 
     if (latest_version <= current_version)
     {
@@ -169,7 +170,6 @@ bool ESP32_OTA_Updater::available()
             binary_size = jsonAsset["size"].as<int>();
 
             new_version_available = true;
-            new_version = latest_version;
             assetFound = true;
             debugf("Found firmware binary on %s.\n", binary_download_url);
             break;
@@ -192,6 +192,11 @@ bool ESP32_OTA_Updater::downloadAndInstall()
         return false;
     }
 
+    if (!new_version_available)
+    {
+        return false;
+    }
+
     // Download the firmware from the URL
     debugf("Starting HTTP Client on binary download url: %s.\n", binary_download_url);
     if (!http_client.begin(wifi_client_secure, binary_download_url))
@@ -207,6 +212,14 @@ bool ESP32_OTA_Updater::downloadAndInstall()
     if (update_size <= 0)
     {
         return false; // Error codes are set in the method itself!
+    }
+
+    // Check firmware size
+    if (update_size != binary_size)
+    {
+        debugf("Firmware update sizes did not match, found %d, expected %d.", update_size, binary_size);
+        error = OTA_RESPONSE_INVALID;
+        return false;
     }
 
     // Update of size update_size is ready for download

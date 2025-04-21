@@ -34,11 +34,10 @@ private:
     const char *http_useragent = "ESP32-OTA-Updater";
 
     bool new_version_available = false;                            /**< True if a new firmware version is available, false otherwise. */
-    Version new_version = NULL;                                    /**< The new semantic version of the firmware. */
     char binary_download_url[ESP32_OTA_UPDATER_LONGSTRING_LENGTH]; /**< The URL to download the firmware binary file. */
     int binary_size = 0;                                           /**< The size of the firmware binary file. */
 
-    Version current_version;             /**< The current semantic version of the firmware. */
+    const Version current_version;       /**< The current semantic version of the firmware. */
     ESP32_OTA_Updater_Error error;       /**< The error status of the OTA updater. */
     WiFiClientSecure wifi_client_secure; /**< The WifiClientSecure object for HTTPS communication. */
     HTTPClient http_client;              /**< The HTTPClient object for making HTTP requests. */
@@ -47,7 +46,7 @@ private:
 
     void updateProgressCallback(size_t progress, size_t size);
     int httpclientSendRequest(HTTPClient &http_client);
-    inline void _begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version);
+    inline void _begin(const char *owner, const char *repo, const char *firmware_path);
 
     Print *debugPrinter = NULL;
     void debugf(const char *format, ...);
@@ -62,8 +61,9 @@ public:
      * @note Please supply the all Certs for all Github endpoints concatenated in one string
      *
      * @param rootCertificate The root certificates for GitHub's HTTPS server and Githubs Download Server.
+     * @param current_version The semantic version of the fimware currently installed, should be "v.0.0.0" or "0.0.0"
      */
-    ESP32_OTA_Updater(const char *rootCertificate);
+    ESP32_OTA_Updater(const char *rootCertificate, const char *current_version);
 
     /**
      * @brief Initializes the ESP32 OTA Updater.
@@ -71,12 +71,11 @@ public:
      * @param owner The owner of the repository where the firmware is build an released.
      * @param repo The name of the repository where the firmware is build an released.
      * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
-     * @param current_version The current version of the firmware.
      * @param gh_api_key The (Fine Grained) Github Personal Access Token.
      *
      * @return true if the initialization was successful, false otherwise.
      */
-    bool begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version, const char *api_key);
+    bool begin(const char *owner, const char *repo, const char *firmware_path, const char *api_key);
 
     /**
      * @brief Initializes the ESP32 OTA Updater.
@@ -84,11 +83,10 @@ public:
      * @param owner The owner of the repository where the firmware is build an released.
      * @param repo The name of the repository where the firmware is build an released.
      * @param firmware_path The path to the firmware binary file on the Github Release -> the asset name.
-     * @param current_version The current version of the firmware.
      *
      * @return true if the initialization was successful, false otherwise.
      */
-    bool begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version);
+    bool begin(const char *owner, const char *repo, const char *firmware_path);
 
     /**
      * @brief Checks if a firmware update is available.

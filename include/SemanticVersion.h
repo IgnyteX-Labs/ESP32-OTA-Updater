@@ -45,12 +45,9 @@ public:
         {
             if (version[0] == 'v')
             {
-                sscanf(version, "v%d.%d.%d", &major, &minor, &patch);
+                version++; // Skip the 'v' prefix
             }
-            else
-            {
-                sscanf(version, "%d.%d.%d", &major, &minor, &patch);
-            }
+            sscanf(version, "%d.%d.%d", &major, &minor, &patch);
         }
     }
 
