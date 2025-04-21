@@ -1,4 +1,5 @@
 #include "ESP32_OTA_Updater.h"
+#include <NetworkClient.h>
 #include <ArduinoJson.h>
 #include <Update.h>
 
