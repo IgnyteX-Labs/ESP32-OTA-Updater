@@ -49,6 +49,9 @@ private:
     int httpclientSendRequest(HTTPClient &http_client);
     inline void _begin(const char *owner, const char *repo, const char *firmware_path, const char *current_version);
 
+    Print *debugPrinter = NULL;
+    void debugf(const char *format, ...);
+
 public:
     /**
      * @brief Constructor for the ESP32_OTA_Updater class.
@@ -127,6 +130,14 @@ public:
      * @return A string containing the description of the last error.
      */
     String getErrorDescription();
+
+    /**
+     * @brief Sets the debug output stream for logging messages.
+     *
+     * @param debugStream A pointer to a Print object, e.g. Serial.
+     *                     Pass NULL to disable debug logging.
+     */
+    void setDebug(Print *debugStream);
 };
 
 #endif

@@ -44,11 +44,12 @@ inline void ESP32_OTA_Updater::_begin(const char *owner, const char *repo, const
 void ESP32_OTA_Updater::updateProgressCallback(size_t progress, size_t size)
 {
     // Update Progress
-    Serial.printf("Installing %d of %d bytes.\n", progress, size);
+    debugf("Installing %d of %d bytes.\n", progress, size);
 }
 
 int ESP32_OTA_Updater::httpclientSendRequest(HTTPClient &http_client)
 {
+    debugf("Setting up HTTP Request Headers\n");
     http_client.useHTTP10(true); // use HTTP/1.0 for update since the update handler not support any transfer Encoding
     http_client.setTimeout(15000);
     http_client.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -57,12 +58,14 @@ int ESP32_OTA_Updater::httpclientSendRequest(HTTPClient &http_client)
     // Add Authorization Header for Github API if defined.
     if (api_key_defined)
     {
+        debugf("Setting Bearer Authentication\n");
         http_client.setAuthorizationType("Bearer");
         http_client.setAuthorization(gh_api_key);
     }
 
     http_client.addHeader("X-GitHub-Api-Version", "2022-11-28"); // Set Github Api Version
 
+    debugf("Sending HTTPS GET.\n");
     int code = http_client.GET();
     int len = http_client.getSize();
 
@@ -70,6 +73,7 @@ int ESP32_OTA_Updater::httpclientSendRequest(HTTPClient &http_client)
     {
         if (len <= 0)
         {
+            debugf("ERROR: Received invalid response length %d.\n", len);
             error = OTA_RESPONSE_INVALID;
             return 0;
         }
@@ -78,11 +82,13 @@ int ESP32_OTA_Updater::httpclientSendRequest(HTTPClient &http_client)
     else if (code < 0)
     {
         error = ESP32_OTA_Updater_Error::WIFI_NOT_CONNECTED;
+        debugf("ERROR: Could not connect to server %d\n", code);
         return code; // Return a negative value to indicate failure
     }
     else
     {
         error = ESP32_OTA_Updater_Error::OTA_NOT_AVAILABLE;
+        debugf("ERROR: Invalid response code %d\n", code);
         return -code; // Return (minus) the response code to indicate failure although a successful request was made
     }
 }
@@ -103,8 +109,11 @@ bool ESP32_OTA_Updater::available()
     char url[urlLen];
     snprintf(url, urlLen, "https://api.github.com/repos/%s/%s/releases/latest", repositry_owner, repositry_name);
 
+    debugf("Checking for new release on %s.\n", url);
+
     if (!http_client.begin(wifi_client_secure, url))
     {
+        debugf("HTTP Client begin failed!\n");
         error = ESP32_OTA_Updater_Error::OTA_NOT_AVAILABLE;
         return false;
     }
@@ -112,6 +121,7 @@ bool ESP32_OTA_Updater::available()
 
     if (httpclientSendRequest(http_client) <= 0)
     {
+        debugf("HTTP GET Request failed!");
         return false; // Error Codes are set in the method itself
     }
 
@@ -122,6 +132,7 @@ bool ESP32_OTA_Updater::available()
     http_client.end();
     if (json_error)
     {
+        debugf("Failed to deserialize release information %s.\n", json_error.c_str());
         error = ESP32_OTA_Updater_Error::OTA_FAILED_TO_DESERIALIZE;
         return false;
     }
@@ -129,6 +140,7 @@ bool ESP32_OTA_Updater::available()
     // Check version from the JSON response
     if (!doc.containsKey("tag_name"))
     {
+        debugf("Release information does not contain \"tag_name\"!\n");
         error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
         return false;
     }
@@ -136,11 +148,13 @@ bool ESP32_OTA_Updater::available()
 
     if (latest_version <= current_version)
     {
+        debugf("The version found is not newer than the current version.\n");
         return false;
     }
     // Find the asset with the binary:
     if (!doc.containsKey("assets"))
     {
+        debugf("Release information does not contain \"assets\"!\n");
         error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
         return false;
     }
@@ -157,11 +171,13 @@ bool ESP32_OTA_Updater::available()
             new_version_available = true;
             new_version = latest_version;
             assetFound = true;
+            debugf("Found firmware binary on %s.\n", binary_download_url);
             break;
         }
     }
     if (!assetFound)
     {
+        debugf("No Firmware binary found on the release.\n");
         error = ESP32_OTA_Updater_Error::OTA_RESPONSE_INVALID;
         return false;
     }
@@ -177,8 +193,10 @@ bool ESP32_OTA_Updater::downloadAndInstall()
     }
 
     // Download the firmware from the URL
+    debugf("Starting HTTP Client on binary download url: %s.\n", binary_download_url);
     if (!http_client.begin(wifi_client_secure, binary_download_url))
     {
+        debugf("Failed to begin HTTP Client.\n");
         error = ESP32_OTA_Updater_Error::OTA_DOWNLOAD_FAILED;
         return false;
     }
@@ -192,12 +210,14 @@ bool ESP32_OTA_Updater::downloadAndInstall()
     }
 
     // Update of size update_size is ready for download
+    debugf("Found an update firmware of size: %d bytes.\n", update_size);
 
     // Directly write the download stream to the file stream...
     NetworkClient *client = http_client.getStreamPtr();
 
     if (!Update.begin(update_size, U_FLASH))
     {
+        debugf("Failed to begin update, insufficient flash!\n");
         error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
         http_client.end();
         return false;
@@ -209,6 +229,7 @@ bool ESP32_OTA_Updater::downloadAndInstall()
 
     if (Update.writeStream(*client) != update_size)
     {
+        debugf("Failed to write update stream to flash.\n");
         error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
         http_client.end();
         return false;
@@ -216,6 +237,7 @@ bool ESP32_OTA_Updater::downloadAndInstall()
 
     if (!Update.end())
     {
+        debugf("Update was not successfully written!\n");
         error = ESP32_OTA_Updater_Error::OTA_INSTALL_FAILED;
         http_client.end();
         return false;
@@ -223,11 +245,13 @@ bool ESP32_OTA_Updater::downloadAndInstall()
 
     http_client.end();
 
+    debugf("Successfully downloaded and wrote update, reboot now.\n");
     return true;
 }
 
 void ESP32_OTA_Updater::reboot()
 {
+    debugf("Rebooting.\n");
     ESP.restart();
 }
 
@@ -259,4 +283,25 @@ String ESP32_OTA_Updater::getErrorDescription()
     default:
         return F("Unknown error");
     }
+}
+
+void ESP32_OTA_Updater::debugf(const char *format, ...)
+{
+    if (debugPrinter != NULL)
+    {
+        const int len = 150;
+        char buffer[len];
+
+        strncpy(buffer, "[OTA] ", 6);
+        va_list args;
+        va_start(args, format);
+        vsnprintf(buffer + 6, len - 6, format, args);
+        va_end(args);
+        debugPrinter->print(buffer);
+    }
+}
+
+void ESP32_OTA_Updater::setDebug(Print *debugStream)
+{
+    debugPrinter = debugStream;
 }
