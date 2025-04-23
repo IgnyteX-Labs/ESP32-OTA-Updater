@@ -1,16 +1,17 @@
 {
-	"name": "ESP32-OTA-Updater",
-	"version": "0.0.0",
-	"description": "",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/IgnyteX-Labs/ESP32-OTA-Updater.git"
-	},
-	"authors": {
-		"name": "Veit Auckenthaler"
-	},
-	"license": "MIT",
-	"frameworks": "Arduino",
-	"dependencies": {
-	}
+  "name": "ESP32-OTA-Updater",
+  "version": "0.0.1",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IgnyteX-Labs/ESP32-OTA-Updater.git"
+  },
+  "authors": {
+    "name": "Veit Auckenthaler"
+  },
+  "license": "MIT",
+  "frameworks": "Arduino",
+  "dependencies": {
+    "bblanchon/ArduinoJson": "^7.0.0"
+  }
 }
