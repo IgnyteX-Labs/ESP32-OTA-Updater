@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - 'docs/**'
+      - 'docs/*'
       - 'README.md'
       - 'LICENSE'
       - '.gitignore'
