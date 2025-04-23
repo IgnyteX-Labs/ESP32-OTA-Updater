@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  determine_version_and_release:
+  build_deploy_docs:
     uses: IgnyteX-Labs/.github/.github/workflows/doxygen_build_and_deploy.yml@main
     secrets: inherit
     permissions:
