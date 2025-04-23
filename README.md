@@ -28,9 +28,6 @@ To get started with the ESP32 Over The Air Updater using PlatformIO, follow thes
       # Add the 'ESP32-OTA-Updater' library to the project.
       lib_deps =
         https://github.com/IgnyteX-Labs/ESP32-OTA-Updater
-      # Add the current git tag (e.g. v0.0.1) as macro (#define) to the source code.
-      build_flags =
-        !echo '-D GIT_TAG=\\"'$(git describe --tags)'\\"'
       ```
 4. **Implement OTA Update**:
 
@@ -50,7 +47,8 @@ To get started with the ESP32 Over The Air Updater using PlatformIO, follow thes
     #define FIRMWARE "firmware.bin"
     #define GITHUB_ACCESS_TOKEN "finegrained_gh_token" // Optional
 
-    ESP32_OTA_Updater ota;
+    // Create ota instance with ssl cert and current semantic version
+    ESP32_OTA_Updater ota(ROOT_CA_CERTIFICATE_GITHUB, PROJ_GIT_TAG);
     ```
 
     #### Setup Function
@@ -64,7 +62,10 @@ To get started with the ESP32 Over The Air Updater using PlatformIO, follow thes
         }
         Serial.println("Connected to WiFi");
 
-        if (!ota.begin(OWNER, REPO, FIRMWARE, GIT_TAG, GITHUB_ACCESS_TOKEN)) {
+        // (Optional)
+        ota.setDebug(&Serial); // for debug output to serial
+
+        if (!ota.begin(OWNER, REPO, FIRMWARE,  GITHUB_ACCESS_TOKEN)) {
             Serial.printf("OTA Updater init failed: %d, %s\n", ota.getErrorCode(), ota.getErrorDescription());
         } else {
             Serial.println("OTA Updater initialized");
